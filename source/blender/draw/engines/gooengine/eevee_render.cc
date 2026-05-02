@@ -622,6 +622,10 @@ void EEVEE_render_draw(EEVEE_Data *vedata, RenderEngine *engine, RenderLayer *rl
     GPU_framebuffer_clear_color_depth_stencil(fbl->main_fb, clear_col, clear_depth, clear_stencil);
     /* Depth pre-pass. */
     DRW_draw_pass(psl->depth_ps);
+
+    /* Goo custom: Save clean depth after depth prepass for final render. */
+    GPU_framebuffer_blit(fbl->main_fb, 0, fbl->double_buffer_depth_fb, 0, GPU_DEPTH_BIT);
+
     /* Create minmax texture */
     EEVEE_create_minmax_buffer(vedata, dtxl->depth, -1);
     EEVEE_occlusion_compute(sldata, vedata);
@@ -648,6 +652,10 @@ void EEVEE_render_draw(EEVEE_Data *vedata, RenderEngine *engine, RenderLayer *rl
     EEVEE_material_transparent_output_accumulate(vedata);
     GPU_framebuffer_texture_attach(fbl->main_color_fb, dtxl->depth, 0, 0);
     GPU_framebuffer_bind(fbl->main_color_fb);
+
+    /* Goo custom: Restore clean depth before transparent pass for final render. */
+    GPU_framebuffer_blit(fbl->double_buffer_depth_fb, 0, fbl->main_fb, 0, GPU_DEPTH_BIT);
+
     DRW_draw_pass(psl->transparent_pass);
     GPU_framebuffer_bind(fbl->main_fb);
     GPU_framebuffer_texture_detach(fbl->main_color_fb, dtxl->depth);

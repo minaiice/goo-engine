@@ -299,6 +299,13 @@ static void eevee_draw_scene(void *vedata)
     /* Depth pre-pass. */
     DRW_stats_group_start("Prepass");
     DRW_draw_pass(psl->depth_ps);
+
+    /* Goo custom: Save clean depth after depth prepass.
+     * This keeps a real geometry depth buffer before Set Depth materials
+     * modify the main depth during material pass.
+     */
+    GPU_framebuffer_blit(fbl->main_fb, 0, fbl->double_buffer_depth_fb, 0, GPU_DEPTH_BIT);
+
     DRW_stats_group_end();
 
     /* Create minmax texture */
@@ -348,6 +355,13 @@ static void eevee_draw_scene(void *vedata)
      * This is needed because dual-source blending only works with 1 color buffer. */
     GPU_framebuffer_texture_attach(fbl->main_color_fb, dtxl->depth, 0, 0);
     GPU_framebuffer_bind(fbl->main_color_fb);
+
+    /* Goo custom: Restore clean depth before transparent pass.
+     * Transparent materials should test against real geometry depth,
+     * not Set Depth modified eye-through depth.
+     */
+    GPU_framebuffer_blit(fbl->double_buffer_depth_fb, 0, fbl->main_fb, 0, GPU_DEPTH_BIT);
+
     DRW_draw_pass(psl->transparent_pass);
     GPU_framebuffer_bind(fbl->main_fb);
     GPU_framebuffer_texture_detach(fbl->main_color_fb, dtxl->depth);
