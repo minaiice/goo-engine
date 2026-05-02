@@ -4,6 +4,20 @@ linking to external resources instead of including content in-line.
 See 'release/text/readme.html' for the end user read-me.
 -->
 
+## 自定义修改
+
+本分支修改了 Goo Engine 的透明材质深度测试逻辑。
+
+面部眼透材质使用 Set Depth 后，会把修改后的深度写入主深度缓冲。
+这会导致 Alpha Blend 眼罩被面部假深度挡住。
+
+本分支在 depth prepass 后保存真实几何深度，并在 transparent pass 前恢复这份深度。
+这样透明眼罩会使用真实几何深度进行遮挡判断，避免被眼透假深度吃掉。
+
+修改文件：
+- source/blender/draw/engines/gooengine/eevee_engine.cc
+- source/blender/draw/engines/gooengine/eevee_render.cc
+
 Goo Engine
 ==========
 
