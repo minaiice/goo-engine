@@ -300,9 +300,11 @@ static void eevee_draw_scene(void *vedata)
     DRW_stats_group_start("Prepass");
     DRW_draw_pass(psl->depth_ps);
 
-    /* Goo custom: Save clean depth after depth prepass.
-     * This keeps a real geometry depth buffer before Set Depth materials
-     * modify the main depth during material pass.
+    /* Goo custom:
+     * Save clean geometry depth after the depth prepass.
+     * Some NPR materials use Set Depth to modify main depth during the material pass.
+     * The saved depth is restored before drawing transparent materials, so alpha-blended
+     * objects are tested against real geometry depth instead of Set Depth modified depth.
      */
     GPU_framebuffer_blit(fbl->main_fb, 0, fbl->double_buffer_depth_fb, 0, GPU_DEPTH_BIT);
 
@@ -356,9 +358,10 @@ static void eevee_draw_scene(void *vedata)
     GPU_framebuffer_texture_attach(fbl->main_color_fb, dtxl->depth, 0, 0);
     GPU_framebuffer_bind(fbl->main_color_fb);
 
-    /* Goo custom: Restore clean depth before transparent pass.
-     * Transparent materials should test against real geometry depth,
-     * not Set Depth modified eye-through depth.
+    /* Goo custom:
+     * Restore clean geometry depth before transparent pass.
+     * This prevents Set Depth eye-through materials from occluding alpha-blended objects,
+     * while still allowing real geometry such as hair to occlude them.
      */
     GPU_framebuffer_blit(fbl->double_buffer_depth_fb, 0, fbl->main_fb, 0, GPU_DEPTH_BIT);
 
